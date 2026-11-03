@@ -48,8 +48,6 @@ It's built on the LLM Wiki pattern (a persistent synthesis an LLM maintains on y
 | `_meta/main-protection.md` | The three main-protection layers explained |
 | `.githooks/pre-push` | Blocks pushes to main/master from any local tool |
 | `.github/workflows/guard-main.yml` | Opens an issue if `main` changes without a merged PR |
-| `.github/workflows/pr-review.yml`, `.github/pr-review/` | Optional PR review agent: proposes fixes, commits them on `/approve` |
-| `_meta/pr-review-agent.md` | How the PR review agent works and how to switch it on |
 | `claude/` | Claude Code hook + settings snippet (layer 1) |
 | `tests/test-block-push-main.sh` | 29-case regression test for the Claude hook |
 | `scripts/setup.sh` | One-time setup |
@@ -62,10 +60,6 @@ It's built on the LLM Wiki pattern (a persistent synthesis an LLM maintains on y
 - **Conversion is the scorecard.** A digest is only useful if its picks become ingests. Hence the single ⭐, the worth-your-time test, the ingest kit, and the ledger that forces a decision, followed by a proposed deferral at 6 weeks.
 - **The spec is the single source of truth.** The routine prompt only handles git and the cloud, so you tune the digest by editing one markdown file in a PR.
 - **Privacy is a hard rule.** Case studies are anonymized with a cooling period, and Claude refuses identifying input rather than silently scrubbing it.
-
-## Optional: PR review agent
-
-Every PR, including the weekly digest, can get a short review against your `CLAUDE.md`, with up to 5 numbered fixes. Reply `/approve`, `/approve 1,3` or `/reject` on the PR, and the agent commits the approved fixes to that PR's branch. You still merge. To switch it on, run `claude setup-token` and then `gh secret set CLAUDE_CODE_OAUTH_TOKEN`. Without the secret it skips quietly. See `_meta/pr-review-agent.md`.
 
 ## Requirements
 
