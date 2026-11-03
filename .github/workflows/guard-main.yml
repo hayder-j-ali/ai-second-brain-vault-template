@@ -1,0 +1,68 @@
+# Layer 3 of main protection (see _meta/main-protection.md).
+# GitHub Free can't enforce branch protection on private repos, so this detects instead of preventing:
+# every new commit on main must come from a merged PR. If one doesn't (a direct push, a force push,
+# or an edit made in the GitHub web UI), it opens an issue (GitHub emails you) and fails the run.
+name: Guard main
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Commit SHA to check (manual test)"
+        required: true
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify the new main commit came from a merged PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ inputs.sha || github.event.after || github.sha }}
+          BEFORE: ${{ github.event.before || '' }}
+          FORCED: ${{ github.event.forced || false }}
+          ACTOR: ${{ github.actor }}
+          EVENT: ${{ github.event_name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          # Branch deletion: after = all zeros.
+          if [ "$SHA" = "0000000000000000000000000000000000000000" ]; then
+            reason="main was deleted"
+          else
+            prs=$(gh api "repos/$REPO/commits/$SHA/pulls" \
+                    --jq '[.[] | select(.merged_at != null and .base.ref == "main") | "#\(.number)"] | join(", ")')
+            if [ -n "$prs" ] && [ "$FORCED" != "true" ]; then
+              echo "OK: ${SHA:0:7} on main came from merged PR $prs"
+              exit 0
+            fi
+            if [ "$FORCED" = "true" ]; then reason="force push to main"; else reason="commit not from a merged PR"; fi
+          fi
+
+          title="⚠️ Unreviewed change on main: ${reason} (${SHA:0:7})"
+          body=$(cat <<EOF
+          The guard-main workflow found a change on \`main\` that didn't come from a merged pull request.
+
+          - **What:** ${reason}
+          - **Commit:** \`${SHA}\` (https://github.com/${REPO}/commit/${SHA})
+          - **Previous main:** \`${BEFORE:-n/a}\`
+          - **Actor:** ${ACTOR} (event: ${EVENT})
+          - **Run:** ${RUN_URL}
+
+          **What to do:** check the commit. If it's legitimate (e.g. you edited on GitHub on purpose), close this issue. If not, revert it with \`git revert ${SHA:0:7}\` on a branch and merge that through a PR. To restore a force-pushed main, push the previous SHA above to a branch and open a PR.
+
+          Policy: main only changes by merging a reviewed PR. See \`_meta/main-protection.md\`.
+          EOF
+          )
+          gh issue create --repo "$REPO" --title "$title" --body "$body"
+          echo "::error::${reason} (${SHA:0:7}). Opened an issue."
+          exit 1
