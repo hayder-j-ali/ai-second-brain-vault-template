@@ -74,11 +74,12 @@ vault/
 ├── positions/             ← your opinions and frameworks (moat layer 2)
 ├── cases/                 ← anonymized work retros (moat layer 3)
 │
-├── .githooks/, .github/   ← repo tooling: pre-push guard + guard-main Action (see _meta/main-protection.md)
+├── .githooks/, .github/   ← repo tooling: pre-push guard, guard-main Action, PR review agent (see _meta/main-protection.md, _meta/pr-review-agent.md)
 └── _meta/                 ← schema and conventions
     ├── digest-spec.md     ← spec for the weekly digest (single source of truth)
     ├── digest-routine-setup.md ← how the weekly digest cloud routine is wired
-    └── main-protection.md ← how `main` is guarded
+    ├── main-protection.md ← how `main` is guarded
+    └── pr-review-agent.md ← optional Action: reviews every PR, proposes fixes, commits them on `/approve`
 ```
 
 Folder names are lowercase. Don't pre-create empty domain folders, because that's speculative structure. Add a domain when a real project or sustained interest warrants it. Anything that spans domains goes in `_cross-domain/`.
@@ -246,6 +247,7 @@ A short, lossy file of rules learned from experience. **Cap: ~50 entries.** When
 
 - **Claude Code** reads and writes the vault directly. File operations and schema edits happen here.
 - **Claude Code cloud routines** handle scheduled tasks (the weekly digest). They run on a fresh clone of the GitHub repo and deliver their output as PRs.
+- **PR review agent (optional GitHub Action)** reviews every PR against this schema and posts a short proposal. On your `/approve` it commits the fixes to the PR branch. It never merges. See `_meta/pr-review-agent.md`.
 - **claude.ai chat** is for thinking and designing, and has no live access to the vault.
 - **Obsidian** (optional) is for reading. The Web Clipper can save straight into `inbox/`, and frontmatter is Dataview-friendly.
 
